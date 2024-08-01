@@ -57,7 +57,7 @@ func CASPathTransformFunc(key string) PathKey {
 }
 
 type StoreOpts struct {
-	Root string
+	StoreRoot string
 	PathTransformFunc
 }
 
@@ -70,8 +70,8 @@ func NewStore(opts StoreOpts) *Store {
 		opts.PathTransformFunc = DefaultPathTransformFunc
 	}
 
-	if opts.Root == "" {
-		opts.Root = defaultRootFolderName
+	if opts.StoreRoot == "" {
+		opts.StoreRoot = defaultRootFolderName
 	}
 
 	return &Store{opts}
@@ -80,17 +80,17 @@ func NewStore(opts StoreOpts) *Store {
 func (s *Store) Has(key string) bool {
 	pk := s.PathTransformFunc(key)
 
-	_, err := os.Stat(path.Join(s.Root, pk.FullPath()))
+	_, err := os.Stat(path.Join(s.StoreRoot, pk.FullPath()))
 	return err == nil
 }
 
 func (s *Store) Clear() error {
-	return os.RemoveAll(s.Root)
+	return os.RemoveAll(s.StoreRoot)
 }
 
 func (s *Store) Delete(key string) error {
 	pk := s.PathTransformFunc(key)
-	return os.RemoveAll(path.Join(s.Root, pk.RootPathKey))
+	return os.RemoveAll(path.Join(s.StoreRoot, pk.RootPathKey))
 }
 
 func (s *Store) Write(key string, r io.Reader) error {
@@ -115,18 +115,18 @@ func (s *Store) Read(key string) (io.Reader, error) {
 
 func (s *Store) readStream(key string) (io.ReadCloser, error) {
 	pk := s.PathTransformFunc(key)
-	return os.Open(path.Join(s.Root, pk.FullPath()))
+	return os.Open(path.Join(s.StoreRoot, pk.FullPath()))
 }
 
 func (s *Store) writeStream(key string, r io.Reader) error {
 	pk := s.PathTransformFunc(key)
-	pathNameWithRoot := path.Join(s.Root, pk.PathName)
+	pathNameWithRoot := path.Join(s.StoreRoot, pk.PathName)
 
 	if err := os.MkdirAll(pathNameWithRoot, os.ModePerm); err != nil {
 		return err
 	}
 
-	fullPath := path.Join(s.Root, pk.FullPath())
+	fullPath := path.Join(s.StoreRoot, pk.FullPath())
 
 	f, err := os.Create(fullPath)
 	if err != nil {

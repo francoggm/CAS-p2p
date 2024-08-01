@@ -3,32 +3,32 @@ package main
 import (
 	"cas-p2p/p2p"
 	"log"
+	"time"
 )
 
-func OnPeer(p p2p.Peer) error {
-	log.Printf("New peer: %+v\n", p)
-	return nil
-}
-
 func main() {
-	opts := p2p.TCPTransportOpts{
+	tcpTransportOpts := p2p.TCPTransportOpts{
 		ListenAddr:    ":3000",
-		Decoder:       p2p.DefaultDecoder{},
 		HandshakeFunc: p2p.NOPHandshakeFunc,
-		OnPeer:        OnPeer,
+		Decoder:       p2p.DefaultDecoder{},
+		// TODO: OnPeer
+	}
+	tcpTransport := p2p.NewTCPTransport(tcpTransportOpts)
+
+	fsOpts := FileServerOpts{
+		StorageRoot:       "3000_network",
+		PathTransformFunc: CASPathTransformFunc,
+		Transport:         tcpTransport,
 	}
 
-	tr := p2p.NewTCPTransport(opts)
+	fs := NewFileServer(fsOpts)
 
 	go func() {
-		for rpc := range tr.Consume() {
-			log.Printf("Received RPC: %s\n", rpc)
-		}
+		time.Sleep(time.Second * 3)
+		fs.Stop()
 	}()
 
-	if err := tr.ListenAndAccept(); err != nil {
+	if err := fs.Start(); err != nil {
 		log.Fatal(err)
 	}
-
-	select {}
 }
