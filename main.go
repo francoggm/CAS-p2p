@@ -3,32 +3,41 @@ package main
 import (
 	"cas-p2p/p2p"
 	"log"
-	"time"
 )
 
-func main() {
+func makeServer(listenAddr string, nodes ...string) *FileServer {
 	tcpTransportOpts := p2p.TCPTransportOpts{
-		ListenAddr:    ":3000",
+		ListenAddr:    listenAddr,
 		HandshakeFunc: p2p.NOPHandshakeFunc,
 		Decoder:       p2p.DefaultDecoder{},
-		// TODO: OnPeer
 	}
 	tcpTransport := p2p.NewTCPTransport(tcpTransportOpts)
 
 	fsOpts := FileServerOpts{
-		StorageRoot:       "3000_network",
+		StorageRoot:       listenAddr + "_network",
 		PathTransformFunc: CASPathTransformFunc,
 		Transport:         tcpTransport,
+		BootstrapNodes:    nodes,
 	}
 
-	fs := NewFileServer(fsOpts)
+	fs := NewFileServer(fsOpts) 
+	tcpTransport.OnPeer = fs.OnPeer
 
+	return fs
+}
+
+func main() {
+	// Mocking two file servers
+	
+	fs1 := makeServer(":3000")
 	go func() {
-		time.Sleep(time.Second * 3)
-		fs.Stop()
+		log.Fatal(fs1.Start())
 	}()
 
-	if err := fs.Start(); err != nil {
-		log.Fatal(err)
-	}
+	fs2 := makeServer(":4000", ":3000")
+	go func() {
+		log.Fatal(fs2.Start())
+	}()
+
+	select{}
 }
